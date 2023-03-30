@@ -9,7 +9,9 @@ Overall, Assistant is a powerful system that can help with a wide range of tasks
 export const FORMAT_INSTRUCTIONS = `RESPONSE FORMAT INSTRUCTIONS
 ----------------------------
 
-When responding to me please, please output a response in one of two formats:
+Note: Anything inside a markdown block ABSOLUTELY MUST be valid, parseable JSON opening with a curly brace and ending with another curly brace inside the markdown. All string fields should start and end with exactly one double quote.
+
+When responding to me, always output a response in one of two formats:
 
 **Option 1:**
 Use this if you want the human to use a tool.
@@ -17,8 +19,8 @@ Markdown code snippet formatted in the following schema:
 
 \`\`\`json
 {{{{
-    "action": string \\ The action to take. Must be one of {tool_names}
-    "action_input": string \\ The input to the action
+    "action": string \\ The action to take. Absolutely must be one of {tool_names}.
+    "action_input": string \\ The input to the action. Must be a string
 }}}}
 \`\`\`
 
@@ -28,7 +30,7 @@ Use this if you want to respond directly to the human. Markdown code snippet for
 \`\`\`json
 {{{{
     "action": "Final Answer",
-    "action_input": string \\ You should put what you want to return to use here
+    "action_input": string \\ You should put what you want to return to the user here
 }}}}
 \`\`\``;
 
@@ -46,7 +48,7 @@ Here is the user's input (remember to respond with a markdown code snippet of a 
 
 {{{{input}}}}`;
 
-export const TEMPLATE_TOOL_RESPONSE = `TOOL RESPONSE: 
+export const TEMPLATE_TOOL_RESPONSE = `TOOL RESPONSE:
 ---------------------
 {observation}
 

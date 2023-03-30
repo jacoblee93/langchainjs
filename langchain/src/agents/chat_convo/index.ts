@@ -39,7 +39,12 @@ export class ChatConversationalAgentOutputParser extends BaseOutputParser {
     if (jsonOutput.endsWith("```")) {
       jsonOutput = jsonOutput.slice(0, -3).trimEnd();
     }
-    const response = JSON.parse(jsonOutput);
+    // Replace unescaped newlines within a string with escaped newlines
+    const response = JSON.parse(
+      jsonOutput
+        .replace(/"(.*?)"/gs, (match) => match.split("\n").join("\\n"))
+        .trim()
+    );
     return { action: response.action, action_input: response.action_input };
   }
 
