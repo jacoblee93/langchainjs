@@ -1,39 +1,48 @@
 import { LLM, BaseLLMParams } from "./base.js";
 
-export interface HFPipelineInput {
-  /** Model to use */
-  model: string;
+// export interface HFPipelineInput {
+//   /** Model to use */
+//   model: string;
 
-  /** Sampling temperature to use */
-  temperature?: number;
+//   /** Sampling temperature to use */
+//   temperature?: number;
 
-  /**
-   * Maximum number of tokens to generate in the completion.
-   */
-  maxTokens?: number;
+//   /**
+//    * Maximum number of tokens to generate in the completion.
+//    */
+//   maxTokens?: number;
 
-  /** Total probability mass of tokens to consider at each step */
-  topP?: number;
+//   /** Total probability mass of tokens to consider at each step */
+//   topP?: number;
 
-  /** Integer to define the top tokens considered within the sample operation to create new text. */
-  topK?: number;
+//   /** Integer to define the top tokens considered within the sample operation to create new text. */
+//   topK?: number;
 
-  /** Penalizes repeated tokens according to frequency */
-  frequencyPenalty?: number;
+//   /** Penalizes repeated tokens according to frequency */
+//   frequencyPenalty?: number;
 
-  /** API key to use. */
-  apiKey?: string;
-}
+//   /** API key to use. */
+//   apiKey?: string;
+// }
 
-export class HuggingFacePipeline extends LLM implements HFPipelineInput {
+export class HuggingFacePipeline extends LLM /*implements HFPipelineInput */{
+
+  constructor(public pipeline: any) {
+    super({});
+  }
+
+  static async fromModelId(task: string) {
+    const { pipeline, env } = await HuggingFacePipeline.imports();
+    return new HuggingFacePipeline(pipeline(task));
+  }
 
   _llmType() {
     return "huggingface_pipeline";
   }
 
   /** @ignore */
-  async _call(prompt: string, _stop?: string[]): Promise<string> {
-    const { pipeline, env } = await HuggingFacePipeline.imports();
+  async _call(prompt: string, _stop?: string[]): Promise<any> {
+    return this.pipeline.pipe('I love transformers!')
     // const res = await this.caller.call(hf.textGeneration.bind(hf), {
     //   model: this.model,
     //   parameters: {
