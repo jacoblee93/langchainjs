@@ -452,6 +452,33 @@ export class LangChainPlusClient {
     return results;
   }
 
+  public async validateAndRunExample(
+    llmOrChain: BaseLanguageModel | BaseChain,
+    example: Example,
+    tracer: LangChainTracer,
+    numRepetitions: number
+  ) {
+    if (isLLM(llmOrChain)) {
+      if (example.inputs.prompts === undefined) {
+        throw new Error(
+          `LLMs may only run dataset examples that have a "prompts" property in their input.`
+        );
+      }
+      return this.runLLM(example, tracer, llmOrChain, numRepetitions);
+    } else if (isChain(llmOrChain)) {
+      return this.runChain(example, tracer, llmOrChain, numRepetitions);
+    } else if (isChatModel(llmOrChain)) {
+      if (!Array.isArray(example.inputs.messages)) {
+        throw new Error(
+          `LLMs may only run dataset examples that have an array named "messages" in their input.`
+        );
+      }
+      return this.runChatModel(example, tracer, llmOrChain, numRepetitions);
+    } else {
+      throw new Error(` llm or chain type: ${llmOrChain}`);
+    }
+  }
+
   protected async runChain(
     example: Example,
     tracer: LangChainTracer,
@@ -515,33 +542,12 @@ export class LangChainPlusClient {
       examples.map(async (example) => {
         const tracer = new LangChainTracer(example.id);
         await tracer.loadSession(sessionName_);
-        if (isLLM(llmOrChain)) {
-          const llmResult = await this.runLLM(
-            example,
-            tracer,
-            llmOrChain,
-            numRepetitions
-          );
-          results[example.id] = llmResult;
-        } else if (isChain(llmOrChain)) {
-          const chainResult = await this.runChain(
-            example,
-            tracer,
-            llmOrChain,
-            numRepetitions
-          );
-          results[example.id] = chainResult;
-        } else if (isChatModel(llmOrChain)) {
-          const chatModelResult = await this.runChatModel(
-            example,
-            tracer,
-            llmOrChain,
-            numRepetitions
-          );
-          results[example.id] = chatModelResult;
-        } else {
-          throw new Error(` llm or chain type: ${llmOrChain}`);
-        }
+        results[example.id] = await this.validateAndRunExample(
+          llmOrChain,
+          example,
+          tracer,
+          numRepetitions
+        );
       })
     );
     return results;
