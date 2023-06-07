@@ -18448,6 +18448,7 @@ __metadata:
     hnswlib-node: ^1.4.2
     html-to-text: ^9.0.5
     ignore: ^5.2.0
+    langchainplus-sdk: ^0.0.6-0
     mammoth: "*"
     mongodb: ^5.2.0
     mysql2: ^3.3.3
@@ -18526,6 +18527,8 @@ __metadata:
     html-to-text:
       optional: true
     ignore:
+      optional: true
+    langchainplus-sdk:
       optional: true
     mammoth:
       optional: true

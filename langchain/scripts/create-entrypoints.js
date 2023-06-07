@@ -242,6 +242,7 @@ const requiresOptionalDependency = [
   "stores/message/momento",
   "stores/message/redis",
   "stores/message/upstash_redis",
+  "client",
 ];
 
 // List of test-exports-* packages which we use to test that the exports field
