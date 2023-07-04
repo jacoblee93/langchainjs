@@ -7,6 +7,7 @@ import { LLMChain } from "../chains/llm_chain.js";
 import { BaseLanguageModel } from "../base_language/index.js";
 import { Callbacks } from "../callbacks/manager.js";
 import { NAIVE_FIX_PROMPT } from "./prompts.js";
+import { Generation, ChatGeneration } from "../schema/index.js";
 
 export class OutputFixingParser<T> extends BaseOutputParser<T> {
   lc_namespace = ["langchain", "output_parsers", "fix"];
@@ -23,7 +24,7 @@ export class OutputFixingParser<T> extends BaseOutputParser<T> {
     }
   ) {
     const prompt = fields?.prompt ?? NAIVE_FIX_PROMPT;
-    const chain = new LLMChain({ llm, prompt });
+    const chain = new LLMChain({ llm, prompt, llmKwargs: parser.llmKwargs });
     return new OutputFixingParser<T>({ parser, retryChain: chain });
   }
 
@@ -37,6 +38,13 @@ export class OutputFixingParser<T> extends BaseOutputParser<T> {
     super(...arguments);
     this.parser = parser;
     this.retryChain = retryChain;
+  }
+
+  async parseResult(
+    generations: Generation[] | ChatGeneration[],
+    callbacks?: Callbacks
+  ) {
+    return this.parser.parseResult(generations, callbacks);
   }
 
   async parse(completion: string, callbacks?: Callbacks) {
