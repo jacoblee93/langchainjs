@@ -191,8 +191,8 @@ export class OpenAI extends BaseLLM implements OpenAIInput, AzureOpenAIInput {
     }
 
     if (this.azureOpenAIApiKey) {
-      if (!this.azureOpenAIApiInstanceName) {
-        throw new Error("Azure OpenAI API instance name not found");
+      if (!this.azureOpenAIApiInstanceName && !this.azureOpenAIBasePath) {
+        throw new Error("Azure OpenAI API instance name or base path not found");
       }
       if (!this.azureOpenAIApiDeploymentName) {
         throw new Error("Azure OpenAI API deployment name not found");

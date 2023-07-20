@@ -4,6 +4,7 @@ export interface OpenAIEndpointConfig {
   azureOpenAIApiKey?: string;
   azureOpenAIBasePath?: string;
   basePath?: string;
+  baseURL?: string;
 }
 
 /**
@@ -17,6 +18,7 @@ export interface OpenAIEndpointConfig {
  * @property {string} config.azureOpenAIApiKey - The API Key for Azure OpenAI.
  * @property {string} config.azureOpenAIBasePath - The base path for Azure OpenAI.
  * @property {string} config.basePath - Some other custom base path URL.
+ * @property {string} config.baseURL - Some other custom base path URL.
  *
  * The function operates as follows:
  * - If both `azureOpenAIBasePath` and `azureOpenAIApiDeploymentName` (plus `azureOpenAIApiKey`) are provided, it returns an URL combining these two parameters (`${azureOpenAIBasePath}/${azureOpenAIApiDeploymentName}`).
@@ -35,6 +37,7 @@ export function getEndpoint(config: OpenAIEndpointConfig) {
     azureOpenAIApiKey,
     azureOpenAIBasePath,
     basePath,
+    baseURL,
   } = config;
 
   if (
@@ -59,5 +62,5 @@ export function getEndpoint(config: OpenAIEndpointConfig) {
     return `https://${azureOpenAIApiInstanceName}.openai.azure.com/openai/deployments/${azureOpenAIApiDeploymentName}`;
   }
 
-  return basePath;
+  return baseURL ?? basePath;
 }

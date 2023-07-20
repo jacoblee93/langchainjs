@@ -1,11 +1,12 @@
-import { CreateCompletionRequestPrompt, CreateCompletionRequest } from "openai";
 import { AsyncCaller } from "../util/async_caller.js";
 
 export const promptLayerTrackRequest = async (
   callerFunc: AsyncCaller,
   functionName: string,
-  prompt: CreateCompletionRequestPrompt,
-  kwargs: CreateCompletionRequest,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  prompt: Record<string, any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  kwargs: Record<string, any>,
   plTags: string[] | undefined,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requestResponse: any,

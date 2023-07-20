@@ -1,5 +1,5 @@
 import { AxiosRequestConfig } from "axios";
-import { ChatCompletionRequestMessage } from "openai";
+import OpenAI from "openai";
 
 import { BaseLanguageModelCallOptions } from "../base_language/index.js";
 
@@ -76,7 +76,7 @@ export declare interface OpenAIInput extends OpenAIBaseInput {
 
 export interface OpenAIChatInput extends OpenAIBaseInput {
   /** ChatGPT messages to pass as a prefix to the prompt */
-  prefixMessages?: ChatCompletionRequestMessage[];
+  prefixMessages?: OpenAI.Chat.ChatCompletion[];
 }
 
 export declare interface AzureOpenAIInput {

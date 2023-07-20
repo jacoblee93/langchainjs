@@ -50,7 +50,7 @@ test("Test ChatOpenAI Generate", async () => {
   console.log({ res });
 });
 
-test("Test ChatOpenAI Generate throws when one of the calls fails", async () => {
+test.only("Test ChatOpenAI Generate throws when one of the calls fails", async () => {
   const chat = new ChatOpenAI({
     modelName: "gpt-3.5-turbo",
     maxTokens: 10,
@@ -135,6 +135,35 @@ test("Test ChatOpenAI in streaming mode", async () => {
 
   expect(nrNewTokens > 0).toBe(true);
   expect(result.content).toBe(streamedCompletion);
+});
+
+test("Test ChatOpenAI in streaming mode with cancellation", async () => {
+  let nrNewTokens = 0;
+  let streamedCompletion = "";
+
+  const model = new ChatOpenAI({
+    modelName: "gpt-3.5-turbo",
+    streaming: true,
+    callbacks: CallbackManager.fromHandlers({
+      async handleLLMNewToken(token: string) {
+        nrNewTokens += 1;
+        streamedCompletion += token;
+      },
+    }),
+  });
+  const controller = new AbortController();
+  const message = new HumanMessage("Hello!");
+  await expect(() => {
+    const res = model.call([message], {
+      signal: controller.signal,
+    });
+    setTimeout(() => {
+      controller.abort();
+    }, 200);
+    return res;
+  }).rejects.toThrow();
+
+  console.log({ nrNewTokens, streamedCompletion });
 });
 
 test("Test ChatOpenAI in streaming mode with n > 1 and multiple prompts", async () => {

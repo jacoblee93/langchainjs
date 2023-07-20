@@ -77,10 +77,11 @@ export class AsyncCaller {
             }),
           {
             onFailedAttempt(error) {
+              console.log(error);
               if (
-                error.message.startsWith("Cancel") ||
-                error.message.startsWith("TimeoutError") ||
-                error.message.startsWith("AbortError")
+                error.message?.startsWith("Cancel") ||
+                error.message?.startsWith("TimeoutError") ||
+                error.message?.startsWith("AbortError")
               ) {
                 throw error;
               }
