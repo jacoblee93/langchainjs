@@ -50,7 +50,7 @@ test("Test ChatOpenAI Generate", async () => {
   console.log({ res });
 });
 
-test.only("Test ChatOpenAI Generate throws when one of the calls fails", async () => {
+test("Test ChatOpenAI Generate throws when one of the calls fails", async () => {
   const chat = new ChatOpenAI({
     modelName: "gpt-3.5-turbo",
     maxTokens: 10,

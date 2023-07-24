@@ -1,4 +1,4 @@
-import { OpenAI } from "openai";
+import { OpenAI, ClientOptions } from "openai";
 import { getEnvironmentVariable } from "../util/env.js";
 import {
   AzureOpenAIInput,
@@ -36,27 +36,6 @@ interface TokenUsage {
 interface OpenAILLMOutput {
   tokenUsage: TokenUsage;
 }
-
-export type ConfigurationParameters = {
-  /**
-   * Defaults to process.env["OPENAI_API_KEY"].
-   */
-  apiKey?: string;
-
-  /**
-   * Override the default base URL for the API, e.g., "https://api.example.com/v2/"
-   */
-  baseURL?: string;
-
-  /**
-   * The maximum amount of time (in milliseconds) that the client should wait for a response
-   * from the server before timing out a single request.
-   *
-   * Note that request timeouts are retried by default, so in a worst-case scenario you may wait
-   * much longer than this timeout before the promise succeeds or fails.
-   */
-  timeout?: number;
-};
 
 function messageTypeToOpenAIRole(
   type: MessageType
@@ -193,16 +172,16 @@ export class ChatOpenAI
 
   private client: OpenAI;
 
-  private clientConfig: ConfigurationParameters;
+  private clientConfig: ClientOptions;
 
   constructor(
     fields?: Partial<OpenAIChatInput> &
       Partial<AzureOpenAIInput> &
       BaseChatModelParams & {
-        configuration?: ConfigurationParameters;
+        configuration?: ClientOptions;
       },
     /** @deprecated */
-    configuration?: ConfigurationParameters
+    configuration?: ClientOptions
   ) {
     super(fields ?? {});
 
@@ -295,7 +274,7 @@ export class ChatOpenAI
   }
 
   /** @ignore */
-  _identifyingParams() {
+  _identifyingParams(): ClientOptions & Omit<OpenAI.Chat.CompletionCreateParams, "messages"> & { model_name: string } {
     return {
       model_name: this.modelName,
       ...this.invocationParams(),
@@ -414,16 +393,16 @@ export class ChatOpenAI
     runManager?: CallbackManagerForLLMRun
   ): Promise<any> {
     if (!this.client) {
-      // const openAIEndpointConfig: OpenAIEndpointConfig = {
-      //   azureOpenAIApiDeploymentName: this.azureOpenAIApiDeploymentName,
-      //   azureOpenAIApiInstanceName: this.azureOpenAIApiInstanceName,
-      //   azureOpenAIApiKey: this.azureOpenAIApiKey,
-      //   azureOpenAIBasePath: this.azureOpenAIBasePath,
-      //   // basePath: this.clientConfig.basePath,
-      //   // baseURL: this.clientConfig.baseURL,
-      // };
+      const openAIEndpointConfig = {
+        azureOpenAIApiDeploymentName: this.azureOpenAIApiDeploymentName,
+        azureOpenAIApiInstanceName: this.azureOpenAIApiInstanceName,
+        azureOpenAIApiKey: this.azureOpenAIApiKey,
+        azureOpenAIBasePath: this.azureOpenAIBasePath,
+        basePath: this.clientConfig.basePath,
+        baseURL: this.clientConfig.baseURL,
+      };
 
-      // const endpoint = getEndpoint(openAIEndpointConfig);
+      const endpoint = getEndpoint(openAIEndpointConfig);
 
       const clientConfig = {
         ...this.clientConfig,
@@ -494,15 +473,10 @@ export class ChatOpenAI
         }
         return finalResponse as OpenAI.Chat.ChatCompletion;
       } : async () => {
-        console.log("GENERATING NON STREAMING", options);
-        if (options.signal?.aborted) {
-          throw new Error("AbortError");
-        }
-        const completion = await this.client.chat.completions.create({
+        return this.client.chat.completions.create({
           ...params,
           stream: false,
         }, { signal: options.signal, maxRetries: 1 });
-        console.log("GENERATED COMPLETION", options, completion)
       }
 
   //   const axiosOptions = {
