@@ -1,7 +1,9 @@
 import { AxiosRequestConfig } from "axios";
-import OpenAI from "openai";
+import { OpenAI, ClientOptions } from "openai";
 
-import { BaseLanguageModelCallOptions } from "../base_language/index.js";
+import type { BaseLanguageModelCallOptions } from "../base_language/index.js";
+import type { RequestOptions } from "openai/core.js";
+import type { Agent } from "openai/_shims/agent.js";
 
 export declare interface OpenAIBaseInput {
   /** Sampling temperature to use */
@@ -72,6 +74,39 @@ export declare interface OpenAIInput extends OpenAIBaseInput {
 
   /** Batch size to use when passing multiple documents to generate */
   batchSize: number;
+}
+
+export type OpenAIChatMessage = OpenAI.Chat.ChatCompletion.Choice.Message;
+
+export type OpenAIChatMessageParam = OpenAI.Chat.CompletionCreateParams.CreateChatCompletionRequestNonStreaming.Message;
+
+export type OpenAIFunction = OpenAI.Chat.CompletionCreateParams.CreateChatCompletionRequestStreaming.Function;
+
+export type OpenAIFunctionCall = OpenAI.Chat.CompletionCreateParams.CreateChatCompletionRequestStreaming.Message.FunctionCall;
+
+export type OpenAIFunctionCallOption = OpenAI.Chat.CompletionCreateParams.CreateChatCompletionRequestStreaming.FunctionCallOption;
+
+// Include some supported Axios legacy fields
+export type OpenAIClientOptions = Omit<ClientOptions, "maxRetries"> & {
+  organization?: string;
+  /** @deprecated Use "baseURL" instead */
+  basePath?: string;
+  /** @deprecated Set corresponding top-level fields instead */
+  baseOptions?: {
+    /** @deprecated Use top-level "defaultHeaders" instead */
+    headers?: Record<string, string | null | undefined>;
+    /** @deprecated Use top-level "defaultQuery" instead */
+    params?: Record<string, string | undefined>;
+    /** @deprecated Use top-level "httpAgent" instead */
+    httpAgent: Agent;
+    /** @deprecated Use top-level "httpAgent" instead */
+    httpsAgent: Agent;
+  }
+};
+
+export type OpenAIRequestOptions = Omit<RequestOptions, "maxRetries"> & {
+  /** @deprecated Use "query" instead */
+  params?: Record<string, string | undefined>;
 }
 
 export interface OpenAIChatInput extends OpenAIBaseInput {

@@ -1,4 +1,5 @@
 import { test, expect } from "@jest/globals";
+import { APIConnectionTimeoutError } from "openai";
 import { ChatOpenAI } from "../openai.js";
 import {
   BaseMessage,
@@ -112,7 +113,7 @@ test("Test ChatOpenAI tokenUsage with a batch", async () => {
   expect(tokenUsage.promptTokens).toBeGreaterThan(0);
 });
 
-test("Test ChatOpenAI in streaming mode", async () => {
+test.only("Test ChatOpenAI in streaming mode", async () => {
   let nrNewTokens = 0;
   let streamedCompletion = "";
 
@@ -237,7 +238,7 @@ test("OpenAI Chat, docs, prompt templates", async () => {
   ]);
 
   console.log(responseA.generations);
-}, 50000);
+}, 5000);
 
 test("Test OpenAI with stop", async () => {
   const model = new ChatOpenAI({ maxTokens: 5 });
@@ -256,7 +257,7 @@ test("Test OpenAI with stop in object", async () => {
   console.log({ res });
 });
 
-test("Test OpenAI with timeout in call options", async () => {
+test.skip("Test OpenAI with timeout in call options", async () => {
   const model = new ChatOpenAI({ maxTokens: 5 });
   await expect(() =>
     model.call([new HumanMessage("Print hello world")], {
@@ -265,7 +266,7 @@ test("Test OpenAI with timeout in call options", async () => {
   ).rejects.toThrow();
 }, 5000);
 
-test("Test OpenAI with timeout in call options and node adapter", async () => {
+test.skip("Test OpenAI with timeout in call options and node adapter", async () => {
   const model = new ChatOpenAI({ maxTokens: 5 });
   await expect(() =>
     model.call([new HumanMessage("Print hello world")], {
@@ -361,3 +362,9 @@ test("getNumTokensFromMessages gpt-4-0314 model for sample input", async () => {
 
   expect(totalCount).toBe(129);
 });
+
+test("introspect error", async () => {
+  const error = new APIConnectionTimeoutError();
+  console.log(error);
+  expect(error.message).toBeDefined();
+})

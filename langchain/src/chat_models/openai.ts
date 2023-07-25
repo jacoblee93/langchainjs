@@ -1,12 +1,17 @@
-import { OpenAI, ClientOptions } from "openai";
+import { OpenAI } from "openai";
 import { getEnvironmentVariable } from "../util/env.js";
-import {
+import type {
   AzureOpenAIInput,
   OpenAICallOptions,
   OpenAIChatInput,
+  OpenAIChatMessage,
+  OpenAIChatMessageParam,
+  OpenAIFunction,
+  OpenAIFunctionCall,
+  OpenAIFunctionCallOption,
+  OpenAIClientOptions,
+  OpenAIRequestOptions
 } from "../types/openai-types.js";
-// import fetchAdapter from "../util/axios-fetch-adapter.js";
-// import type { StreamingAxiosConfiguration } from "../util/axios-types.js";
 import { BaseChatModel, BaseChatModelParams } from "./base.js";
 import {
   AIMessage,
@@ -23,7 +28,7 @@ import { CallbackManagerForLLMRun } from "../callbacks/manager.js";
 import { promptLayerTrackRequest } from "../util/prompt-layer.js";
 import { StructuredTool } from "../tools/base.js";
 import { formatToOpenAIFunction } from "../tools/convert_to_openai.js";
-// import { getEndpoint, OpenAIEndpointConfig } from "../util/azure.js";
+import { getEndpoint } from "../util/azure.js";
 
 export { OpenAICallOptions, OpenAIChatInput, AzureOpenAIInput };
 
@@ -54,8 +59,8 @@ function messageTypeToOpenAIRole(
   }
 }
 
-function openAIResponseToChatMessage(
-  message: OpenAI.Chat.ChatCompletion.Choice.Message
+function openAIChatMessageToLangChainChatMessage(
+  message: OpenAIChatMessage
 ): BaseMessage {
   switch (message.role) {
     case "user":
@@ -72,8 +77,8 @@ function openAIResponseToChatMessage(
 }
 
 export interface ChatOpenAICallOptions extends OpenAICallOptions {
-  function_call?: OpenAI.Chat.CompletionCreateParams.CreateChatCompletionRequestNonStreaming.FunctionCallOption;
-  functions?: OpenAI.Chat.CompletionCreateParams.CreateChatCompletionRequestNonStreaming.Function[];
+  function_call?: OpenAIFunctionCallOption;
+  functions?: OpenAIFunction[];
   tools?: StructuredTool[];
   promptIndex?: number;
 }
@@ -172,16 +177,16 @@ export class ChatOpenAI
 
   private client: OpenAI;
 
-  private clientConfig: ClientOptions;
+  private clientConfig: OpenAIClientOptions;
 
   constructor(
     fields?: Partial<OpenAIChatInput> &
       Partial<AzureOpenAIInput> &
       BaseChatModelParams & {
-        configuration?: ClientOptions;
+        configuration?: OpenAIClientOptions;
       },
     /** @deprecated */
-    configuration?: ClientOptions
+    configuration?: OpenAIClientOptions
   ) {
     super(fields ?? {});
 
@@ -274,7 +279,7 @@ export class ChatOpenAI
   }
 
   /** @ignore */
-  _identifyingParams(): ClientOptions & Omit<OpenAI.Chat.CompletionCreateParams, "messages"> & { model_name: string } {
+  _identifyingParams() {
     return {
       model_name: this.modelName,
       ...this.invocationParams(),
@@ -297,20 +302,23 @@ export class ChatOpenAI
   ): Promise<ChatResult> {
     const tokenUsage: TokenUsage = {};
     const params = this.invocationParams(options);
-    const messagesMapped: OpenAI.Chat.CompletionCreateParams.CreateChatCompletionRequestNonStreaming.Message[] = messages.map(
+    const messagesMapped: OpenAIChatMessageParam[] = messages.map(
       (message) => ({
         role: messageTypeToOpenAIRole(message._getType()),
         content: message.content,
         name: message.name,
-        function_call: message.additional_kwargs
-          .function_call as OpenAI.Chat.CompletionCreateParams.CreateChatCompletionRequestNonStreaming.Message.FunctionCall,
+        function_call: message.additional_kwargs.function_call as OpenAIFunctionCall,
       })
     );
 
     const data = await this.completionWithRetry({
       ...params,
       messages: messagesMapped,
-    }, { signal: options.signal ?? options.options?.signal, promptIndex: options.promptIndex }, runManager);
+    }, {
+      signal: options.signal ?? options.options?.signal,
+      promptIndex: options.promptIndex,
+      timeout: options.options?.timeout
+    }, runManager);
 
     const {
       completion_tokens: completionTokens,
@@ -336,7 +344,7 @@ export class ChatOpenAI
       const text = part.message?.content ?? "";
       generations.push({
         text,
-        message: openAIResponseToChatMessage(
+        message: openAIChatMessageToLangChainChatMessage(
           part.message ?? { role: "assistant" }
         ),
       });
@@ -389,7 +397,7 @@ export class ChatOpenAI
   /** @ignore */
   async completionWithRetry(
     params: OpenAI.Chat.CompletionCreateParams,
-    options: { signal?: AbortSignal, promptIndex?: number },
+    options: { promptIndex?: number } & OpenAIRequestOptions,
     runManager?: CallbackManagerForLLMRun
   ): Promise<any> {
     if (!this.client) {
@@ -406,26 +414,57 @@ export class ChatOpenAI
 
       const clientConfig = {
         ...this.clientConfig,
-        // maxRetries: 1,
-        // baseURL: endpoint,
-        // baseOptions: {
-          // timeout: this.timeout,
-          // ...this.clientConfig.baseOptions,
-        // },
+        maxRetries: 1,
       };
+
+      if (endpoint) {
+        clientConfig.baseURL = endpoint;
+      }
+      if (this.clientConfig.baseOptions?.httpsAgent ?? this.clientConfig.baseOptions?.httpAgent) {
+        clientConfig.httpAgent = this.clientConfig.baseOptions?.httpsAgent ?? this.clientConfig.baseOptions?.httpAgent;
+      }
 
       this.client = new OpenAI(clientConfig);
     }
 
-    console.log({ signal: options.signal })
+    const requestOptions: OpenAIRequestOptions = {
+      signal: options.signal,
+      headers: options.headers ?? this.clientConfig.baseOptions?.headers ?? this.clientConfig.defaultHeaders,
+      query: options.params ?? options.query ?? this.clientConfig.baseOptions?.params ?? this.clientConfig.defaultQuery
+    };
+    if (options.timeout) {
+      requestOptions.timeout = options.timeout;
+    }
+    if (this.azureOpenAIApiKey) {
+      requestOptions.headers = {
+        "api-key": this.azureOpenAIApiKey,
+        ...(requestOptions.headers ?? {}),
+      };
+      requestOptions.query = {
+        "api-version": this.azureOpenAIApiVersion,
+        ...(requestOptions.query ?? {}),
+      };
+    }
+    if (this.clientConfig.organization) {
+      requestOptions.headers = {
+        "OpenAI-Organization": this.clientConfig.organization,
+        ...requestOptions.headers,
+      };
+    }
     const completionRequest = params.stream ?
       async () => {
+        if (options.signal?.aborted) {
+          throw new Error("Cancel: canceled");
+        }
         const stream = await this.client.chat.completions.create({
           ...params,
           stream: true,
-        }, { signal: options.signal, maxRetries: 1 });
+        }, requestOptions);
         let finalResponse;
         for await (const part of stream) {
+          if (options.signal?.aborted) {
+            throw new Error("Cancel: canceled");
+          }
           if (!finalResponse) {
             finalResponse = {
               id: part.id,
@@ -473,27 +512,20 @@ export class ChatOpenAI
         }
         return finalResponse as OpenAI.Chat.ChatCompletion;
       } : async () => {
-        return this.client.chat.completions.create({
-          ...params,
-          stream: false,
-        }, { signal: options.signal, maxRetries: 1 });
+        if (options.signal?.aborted) {
+          throw new Error("Cancel: canceled");
+        }
+        try {
+          const response = await this.client.chat.completions.create({
+            ...params,
+            stream: false,
+          }, requestOptions);
+          return response;
+        } catch (e) {
+          console.log(e);
+          throw e;
+        }
       }
-
-  //   const axiosOptions = {
-  //     adapter: isNode() ? undefined : fetchAdapter,
-  //     // ...this.clientConfig.baseOptions,
-  //     ...options,
-  //   } as StreamingAxiosConfiguration;
-  //   if (this.azureOpenAIApiKey) {
-  //     axiosOptions.headers = {
-  //       "api-key": this.azureOpenAIApiKey,
-  //       ...axiosOptions.headers,
-  //     };
-  //     axiosOptions.params = {
-  //       "api-version": this.azureOpenAIApiVersion,
-  //       ...axiosOptions.params,
-  //     };
-  //   }
     return this.caller.call(completionRequest);
   }
 
