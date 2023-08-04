@@ -129,6 +129,32 @@ export class LLMChain<
     return super.call(values, config);
   }
 
+  async *_streamIterator(input: ChainValues, options?: Record<string, any>): AsyncGenerator<ChainValues> {
+    const valuesForPrompt = { ...input };
+    const valuesForLLM: this["llm"]["CallOptions"] = {
+      ...this.llmKwargs,
+    };
+    if (options) {
+      for (const key of this.llm.callKeys) {
+        if (key in options) {
+          valuesForLLM[key as keyof this["llm"]["CallOptions"]] = options[key];
+        }
+      }
+    }
+    const fullValues = await this._formatValues(valuesForPrompt);
+    const promptValue = await this.prompt.formatPromptValue(fullValues);
+    const stream = await this.llm._streamIterator(promptValue, valuesForLLM);
+    for await (const chunk of stream) {
+      console.log(chunk);
+      yield {
+        [this.outputKey]: await this._getFinalOutput(
+          [{text: typeof chunk === "string" ? chunk : chunk.content }],
+          promptValue,
+        )
+      }
+    }
+  }
+
   /** @ignore */
   async _call(
     values: ChainValues & this["llm"]["CallOptions"],
