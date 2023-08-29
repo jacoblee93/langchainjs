@@ -1,11 +1,11 @@
 ```typescript
 import { ChatOpenAI } from "langchain/chat_models/openai";
-import { LLMChain } from "langchain/chains";
 import {
   ChatPromptTemplate,
   SystemMessagePromptTemplate,
   HumanMessagePromptTemplate
 } from "langchain/prompts";
+import { StringOutputParser } from "langchain/schema/output_parser";
 
 const template = "You are a helpful assistant that translates {input_language} to {output_language}.";
 const systemMessagePrompt = SystemMessagePromptTemplate.fromTemplate(template);
@@ -18,17 +18,16 @@ const chat = new ChatOpenAI({
   temperature: 0,
 });
 
-const chain = new LLMChain({
-  llm: chat,
-  prompt: chatPrompt,
-});
+const outputParser = new StringOutputParser();
 
-const result = await chain.call({
+const chain = chatPrompt.pipe(chat).pipe(outputParser);
+
+const result = await chain.invoke({
   input_language: "English",
   output_language: "French",
   text: "I love programming",
 });
 ```
 ```typescript
-// { text: "J'adore programmer" }
+// "J'adore programmer"
 ```

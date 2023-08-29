@@ -9,7 +9,7 @@ const llm = new OpenAI({
 And now we can pass in text and get predictions!
 
 ```typescript
-const result = await llm.predict("What would be a good company name for a company that makes colorful socks?");
+const result = await llm.invoke("What would be a good company name for a company that makes colorful socks?");
 // "Feetful of Fun"
 ```
 

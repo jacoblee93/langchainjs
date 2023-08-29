@@ -29,6 +29,8 @@ Now we can start building our language model application. LangChain provides man
 
 The basic building block of LangChain is the LLM, which takes in text and generates more text.
 
+`text-davinci-003` and `llama2` are examples of LLMs.
+
 As an example, suppose we're building an application that generates a company name based on a company description. In order to do this, we need to initialize an OpenAI model wrapper. In this case, since we want the outputs to be MORE random, we'll initialize our model with a HIGH temperature.
 
 import LLM from "@snippets/get_started/quickstart/llm.mdx"
@@ -38,6 +40,8 @@ import LLM from "@snippets/get_started/quickstart/llm.mdx"
 ## Chat models
 
 Chat models are a variation on language models. While chat models use language models under the hood, the interface they expose is a bit different: rather than expose a "text in, text out" API, they expose an interface where "chat messages" are the inputs and outputs.
+
+`gpt-4`, `gpt-3.5-turbo`, and `claude-2` are examples of chat models.
 
 You can get chat completions by passing one or more messages to the chat model. The response will be a message. The types of messages currently supported in LangChain are `AIMessage`, `HumanMessage`, `SystemMessage`, `FunctionMessage`, and `ChatMessage` -- `ChatMessage` takes in an arbitrary role parameter. Most of the time, you'll just be dealing with `HumanMessage`, `AIMessage`, and `SystemMessage`.
 
@@ -63,9 +67,9 @@ With PromptTemplates this is easy! In this case our template would be very simpl
 </TabItem>
 <TabItem value="chat_models" label="Chat models">
 
-Similar to LLMs, you can make use of templating by using a `MessagePromptTemplate`. You can build a `ChatPromptTemplate` from one or more `MessagePromptTemplate`s. You can use `ChatPromptTemplate`'s `format_messages` method to generate the formatted messages.
+You can use `PromptTemplates` with chat models as well, but for more sophisticated prompts you can use a `MessagePromptTemplate`. You can build a `ChatPromptTemplate` from one or more `MessagePromptTemplate`s. You can use `ChatPromptTemplate`'s `format_messages` method to generate the formatted messages.
 
-Because this is generating a list of messages, it is slightly more complex than the normal prompt template which is generating only a string. Please see the detailed guides on prompts to understand more options available to you here.
+Because this is generating a list of messages, it is slightly more complex than the normal prompt template, which only generates a string. Please see the sections on prompts to understand more options available to you here.
 
 <PromptTemplateChatModel/>
     </TabItem>
@@ -73,7 +77,8 @@ Because this is generating a list of messages, it is slightly more complex than 
 
 ## Chains
 
-Now that we've got a model and a prompt template, we'll want to combine the two. Chains give us a way to link (or chain) together multiple primitives, like models, prompts, and other chains.
+Now that we've got a model and a prompt template, we'll want to combine the two. Many LangChain modules, including LLMs, chat models, and prompts,
+can be chained together using LangChain Expression Language to form sequences where the output of one step is passed as the input of the next step.
 
 import ChainLLM from "@snippets/get_started/quickstart/chains_llms.mdx"
 import ChainChatModel from "@snippets/get_started/quickstart/chains_chat_models.mdx"
@@ -81,7 +86,7 @@ import ChainChatModel from "@snippets/get_started/quickstart/chains_chat_models.
 <Tabs>
 <TabItem value="llms" label="LLMs" default>
 
-The simplest and most common type of chain is an LLMChain, which passes an input first to a PromptTemplate and then to an LLM. We can construct an LLM chain from our existing model and prompt template.
+A simple and common example of a chain passes an input first to a PromptTemplate and then to an LLM. We can construct a chain from the above model and prompt template like this:
 
 <ChainLLM/>
 
@@ -90,9 +95,13 @@ There we go, our first chain! Understanding how this simple chain works will set
 </TabItem>
 <TabItem value="chat_models" label="Chat models">
 
-The `LLMChain` can be used with chat models as well:
+You can create chains using chat models and `ChatPromptTemplate`s as well:
 
 <ChainChatModel/>
+
+Unlike LLMs, chat models return chat messages. To standardize the output as a string, you'll notice we've added an output parser as a third step in the chain.
+This particular output parser takes the output messages from the chat model and extracts the content, and returns it as a string.
+
 </TabItem>
 </Tabs>
 

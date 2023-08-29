@@ -6,7 +6,7 @@ const chat = new ChatOpenAI({
   temperature: 0
 });
 
-const result = await chat.predictMessages([
+const result = await chat.invoke([
   new HumanMessage("Translate this sentence from English to French. I love programming.")
 ]);
 
@@ -18,10 +18,9 @@ const result = await chat.predictMessages([
 ```
 
 It is useful to understand how chat models are different from a normal LLM, but it can often be handy to just be able to treat them the same.
-LangChain makes that easy by also exposing an interface through which you can interact with a chat model as you would a normal LLM.
-You can access this through the `predict` interface.
+LangChain makes that easy by supporting a few different input values to the `.invoke` method, including strings:
 
 ```typescript
-const result = await chat.predict("Translate this sentence from English to French. I love programming.")
-// "J'adore la programmation."
+const result = await chat.invoke("Translate this sentence from English to French. I love programming.")
+// "J'adore programmer."
 ```
